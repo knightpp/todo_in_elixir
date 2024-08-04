@@ -1,5 +1,12 @@
 defmodule Todo.DatabaseTest do
+  require GenServer
   use ExUnit.Case
+
+  setup do
+    if GenServer.whereis(Todo.Database) != nil do
+      GenServer.stop(Todo.Database)
+    end
+  end
 
   @tag :tmp_dir
   test "get nonexsistent", %{tmp_dir: tmp_dir} do

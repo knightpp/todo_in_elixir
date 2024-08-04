@@ -1,8 +1,10 @@
 defmodule Todo.CacheTest do
   use ExUnit.Case, async: true
 
-  setup do
-    {:ok, cache} = Todo.Cache.start()
+  @moduletag :tmp_dir
+
+  setup %{tmp_dir: tmp_dir} do
+    {:ok, cache} = Todo.Cache.start(tmp_dir)
 
     {:ok, cache: cache}
   end

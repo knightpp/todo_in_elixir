@@ -1,8 +1,9 @@
 defmodule Todo.Cache do
   use GenServer
 
-  def start() do
-    GenServer.start(__MODULE__, nil)
+  @spec start(String.t()) :: GenServer.on_start()
+  def start(dir) do
+    GenServer.start(__MODULE__, dir)
   end
 
   @spec server_process(GenServer.server(), String.t()) :: pid()
@@ -11,8 +12,8 @@ defmodule Todo.Cache do
   end
 
   @impl GenServer
-  def init(_) do
-    Todo.Database.start()
+  def init(dir) do
+    Todo.Database.start(dir)
     {:ok, %{}}
   end
 

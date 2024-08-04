@@ -1,4 +1,5 @@
 defmodule Todo.Database do
+  alias Todo.Database.Worker
   use GenServer
 
   @spec start(String.t()) :: GenServer.on_start()
@@ -19,13 +20,65 @@ defmodule Todo.Database do
   @impl GenServer
   def init(dir) do
     File.mkdir_p!(dir)
+
+    workers =
+      0..2
+      |> Enum.map(fn i ->
+        {:ok, pid} = Worker.start(dir)
+        {i, pid}
+      end)
+      |> Map.new()
+
+    {:ok, workers}
+  end
+
+  @impl GenServer
+  def handle_cast({:store, key, value}, workers) do
+    worker = choose_worker(key, workers)
+    Worker.store(worker, key, value)
+    {:noreply, workers}
+  end
+
+  @impl GenServer
+  def handle_call({:get, key}, _from, workers) do
+    worker = choose_worker(key, workers)
+    data = Worker.get(worker, key)
+
+    {:reply, data, workers}
+  end
+
+  @spec choose_worker(String.t(), %{number() => GenServer.server()}) :: GenServer.server()
+  defp choose_worker(key, workers) do
+    Map.fetch!(workers, :erlang.phash2(key, 3))
+  end
+end
+
+defmodule Todo.Database.Worker do
+  use GenServer
+
+  def start(dir) do
+    GenServer.start(__MODULE__, dir)
+  end
+
+  @spec store(GenServer.server(), String.t(), term()) :: :ok
+  def store(pid, name, value) do
+    GenServer.call(pid, {:store, name, value})
+  end
+
+  @spec get(GenServer.server(), String.t()) :: term()
+  def get(pid, name) do
+    GenServer.call(pid, {:get, name})
+  end
+
+  @impl GenServer
+  def init(dir) do
     {:ok, dir}
   end
 
   @impl GenServer
-  def handle_cast({:store, key, value}, dir) do
+  def handle_call({:store, key, value}, _from, dir) do
     file_name(key, dir) |> File.write!(:erlang.term_to_binary(value))
-    {:noreply, dir}
+    {:reply, :ok, dir}
   end
 
   @impl GenServer
