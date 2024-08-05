@@ -1,8 +1,8 @@
 defmodule Todo.Server do
   use GenServer
 
-  def start(name) when is_binary(name) do
-    GenServer.start(__MODULE__, name)
+  def start_link(name) when is_binary(name) do
+    GenServer.start_link(__MODULE__, name)
   end
 
   @spec add_entry(GenServer.server(), Todo.List.Entry) :: :ok

@@ -2,9 +2,9 @@ defmodule Todo.Database do
   alias Todo.Database.Worker
   use GenServer
 
-  @spec start(String.t()) :: GenServer.on_start()
-  def start(dir \\ "./persist") do
-    GenServer.start(__MODULE__, dir, name: __MODULE__)
+  @spec start_link(String.t()) :: GenServer.on_start()
+  def start_link(dir) do
+    GenServer.start_link(__MODULE__, dir, name: __MODULE__)
   end
 
   @spec store(String.t(), term()) :: :ok
@@ -24,7 +24,7 @@ defmodule Todo.Database do
     workers =
       0..2
       |> Enum.map(fn i ->
-        {:ok, pid} = Worker.start(dir)
+        {:ok, pid} = Worker.start_link(dir)
         {i, pid}
       end)
       |> Map.new()
@@ -56,8 +56,8 @@ end
 defmodule Todo.Database.Worker do
   use GenServer
 
-  def start(dir) do
-    GenServer.start(__MODULE__, dir)
+  def start_link(dir) do
+    GenServer.start_link(__MODULE__, dir)
   end
 
   @spec store(GenServer.server(), String.t(), term()) :: :ok
