@@ -1,5 +1,6 @@
 defmodule Todo.System do
   use Supervisor
+  require Logger
 
   def start_link(_arg) do
     Supervisor.start_link(__MODULE__, nil)
@@ -7,7 +8,10 @@ defmodule Todo.System do
 
   @impl Supervisor
   def init(_arg) do
+    Logger.info("starting #{__MODULE__}")
+
     children = [
+      {Todo.Database, "./persist"},
       Todo.Cache
     ]
 

@@ -4,7 +4,8 @@ defmodule Todo.CacheTest do
   @moduletag :tmp_dir
 
   setup %{tmp_dir: tmp_dir} do
-    {:ok, cache} = Todo.Cache.start_link(tmp_dir)
+    _ = Todo.Database.start_link(tmp_dir)
+    {:ok, cache} = Todo.Cache.start_link(nil)
 
     {:ok, cache: cache}
   end

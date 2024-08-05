@@ -1,6 +1,7 @@
 defmodule Todo.Database do
   alias Todo.Database.Worker
   use GenServer
+  require Logger
 
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(dir) do
@@ -19,6 +20,8 @@ defmodule Todo.Database do
 
   @impl GenServer
   def init(dir) do
+    Logger.info("starting #{__MODULE__}")
+
     File.mkdir_p!(dir)
 
     workers =
@@ -55,6 +58,7 @@ end
 
 defmodule Todo.Database.Worker do
   use GenServer
+  require Logger
 
   def start_link(dir) do
     GenServer.start_link(__MODULE__, dir)
@@ -72,6 +76,7 @@ defmodule Todo.Database.Worker do
 
   @impl GenServer
   def init(dir) do
+    Logger.info("starting #{__MODULE__}")
     {:ok, dir}
   end
 

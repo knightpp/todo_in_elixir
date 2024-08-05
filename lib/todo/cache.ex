@@ -1,9 +1,10 @@
 defmodule Todo.Cache do
   use GenServer
+  require Logger
 
   @spec start_link(String.t()) :: GenServer.on_start()
-  def start_link(dir) do
-    GenServer.start_link(__MODULE__, dir)
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, nil)
   end
 
   @spec server_process(GenServer.server(), String.t()) :: pid()
@@ -12,8 +13,8 @@ defmodule Todo.Cache do
   end
 
   @impl GenServer
-  def init(dir) do
-    Todo.Database.start_link(dir)
+  def init(_) do
+    Logger.info("starting #{__MODULE__}")
     {:ok, %{}}
   end
 

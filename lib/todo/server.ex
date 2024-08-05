@@ -1,5 +1,6 @@
 defmodule Todo.Server do
   use GenServer
+  require Logger
 
   def start_link(name) when is_binary(name) do
     GenServer.start_link(__MODULE__, name)
@@ -22,6 +23,7 @@ defmodule Todo.Server do
 
   @impl GenServer
   def init(name) do
+    Logger.info("starting #{__MODULE__}")
     {:ok, {name, nil}, {:continue, :init}}
   end
 
