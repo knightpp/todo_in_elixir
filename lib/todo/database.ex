@@ -1,58 +1,49 @@
 defmodule Todo.Database do
   alias Todo.Database.Worker
-  use GenServer
   require Logger
 
-  @spec start_link(String.t()) :: GenServer.on_start()
+  @pool_size 3
+
+  def child_spec(dir) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [dir]},
+      type: :supervisor
+    }
+  end
+
+  @spec start_link(String.t()) :: Supervisor.on_start()
   def start_link(dir) do
-    GenServer.start_link(__MODULE__, dir, name: __MODULE__)
-  end
-
-  @spec store(String.t(), term()) :: :ok
-  def store(name, value) do
-    GenServer.cast(__MODULE__, {:store, name, value})
-  end
-
-  @spec get(String.t()) :: term()
-  def get(name) do
-    GenServer.call(__MODULE__, {:get, name})
-  end
-
-  @impl GenServer
-  def init(dir) do
     Logger.info("starting #{__MODULE__}")
 
     File.mkdir_p!(dir)
 
-    workers =
-      0..2
-      |> Enum.map(fn i ->
-        {:ok, pid} = Worker.start_link(dir)
-        {i, pid}
-      end)
-      |> Map.new()
+    children =
+      1..@pool_size
+      |> Enum.map(fn i -> worker_spec(dir, i) end)
 
-    {:ok, workers}
+    Supervisor.start_link(children, strategy: :one_for_one)
   end
 
-  @impl GenServer
-  def handle_cast({:store, key, value}, workers) do
-    worker = choose_worker(key, workers)
-    Worker.store(worker, key, value)
-    {:noreply, workers}
+  @spec store(String.t(), term()) :: :ok
+  def store(name, value) do
+    Worker.store(choose_worker(name), name, value)
   end
 
-  @impl GenServer
-  def handle_call({:get, key}, _from, workers) do
-    worker = choose_worker(key, workers)
-    data = Worker.get(worker, key)
-
-    {:reply, data, workers}
+  @spec get(String.t()) :: term()
+  def get(name) do
+    Worker.get(choose_worker(name), name)
   end
 
-  @spec choose_worker(String.t(), %{number() => GenServer.server()}) :: GenServer.server()
-  defp choose_worker(key, workers) do
-    Map.fetch!(workers, :erlang.phash2(key, 3))
+  @spec worker_spec(String.t(), number()) :: Supervisor.child_spec()
+  defp(worker_spec(dir, worker_id)) do
+    default_spec = {Todo.Database.Worker, {dir, worker_id}}
+    Supervisor.child_spec(default_spec, id: worker_id)
+  end
+
+  @spec choose_worker(String.t()) :: non_neg_integer()
+  defp choose_worker(key) do
+    :erlang.phash2(key, 3) + 1
   end
 end
 
@@ -60,18 +51,18 @@ defmodule Todo.Database.Worker do
   use GenServer
   require Logger
 
-  def start_link(dir) do
-    GenServer.start_link(__MODULE__, dir)
+  def start_link({dir, worker_id}) do
+    GenServer.start_link(__MODULE__, dir, name: via_tuple(worker_id))
   end
 
-  @spec store(GenServer.server(), String.t(), term()) :: :ok
-  def store(pid, name, value) do
-    GenServer.call(pid, {:store, name, value})
+  @spec store(term(), String.t(), term()) :: :ok
+  def store(key, name, value) do
+    GenServer.call(via_tuple(key), {:store, name, value})
   end
 
-  @spec get(GenServer.server(), String.t()) :: term()
-  def get(pid, name) do
-    GenServer.call(pid, {:get, name})
+  @spec get(term(), String.t()) :: term()
+  def get(key, name) do
+    GenServer.call(via_tuple(key), {:get, name})
   end
 
   @impl GenServer
@@ -99,5 +90,9 @@ defmodule Todo.Database.Worker do
 
   defp file_name(key, dir) do
     Path.join(dir, to_string(key))
+  end
+
+  defp via_tuple(id) do
+    Todo.ProcessRegistry.via_tuple({__MODULE__, id})
   end
 end

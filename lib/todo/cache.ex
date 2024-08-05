@@ -4,12 +4,12 @@ defmodule Todo.Cache do
 
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(_) do
-    GenServer.start_link(__MODULE__, nil)
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  @spec server_process(GenServer.server(), String.t()) :: pid()
-  def server_process(server, list_name) do
-    GenServer.call(server, {:server_process, list_name})
+  @spec server_process(String.t()) :: pid()
+  def server_process(list_name) do
+    GenServer.call(__MODULE__, {:server_process, list_name})
   end
 
   @impl GenServer

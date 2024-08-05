@@ -11,6 +11,7 @@ defmodule Todo.System do
     Logger.info("starting #{__MODULE__}")
 
     children = [
+      Todo.ProcessRegistry,
       {Todo.Database, "./persist"},
       Todo.Cache
     ]
