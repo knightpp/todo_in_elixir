@@ -3,9 +3,7 @@ defmodule Todo.Server do
   require Logger
 
   def start_link(name) when is_binary(name) do
-    GenServer.start_link(__MODULE__, name,
-      name: Todo.ProcessRegistry.via_tuple({__MODULE__, name})
-    )
+    GenServer.start_link(__MODULE__, name, name: via_tuple(name))
   end
 
   @spec add_entry(GenServer.server(), Todo.List.Entry) :: :ok
@@ -51,5 +49,9 @@ defmodule Todo.Server do
   def handle_continue(:init, {name, nil}) do
     list = Todo.Database.get(name) || Todo.List.new()
     {:noreply, {name, list}}
+  end
+
+  defp via_tuple(name) do
+    Todo.ProcessRegistry.via_tuple({__MODULE__, name})
   end
 end

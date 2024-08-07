@@ -9,7 +9,7 @@ defmodule Todo.Cache do
 
   @spec server_process(String.t()) :: pid()
   def server_process(list_name) do
-    case DynamicSupervisor.start_child(__MODULE__, {Todo.Server, list_name}) do
+    case start_child(list_name) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
@@ -19,5 +19,9 @@ defmodule Todo.Cache do
   def init(_) do
     Logger.info("starting #{__MODULE__}")
     DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
+  defp start_child(name) do
+    DynamicSupervisor.start_child(__MODULE__, {Todo.Server, name})
   end
 end
