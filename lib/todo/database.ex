@@ -22,7 +22,7 @@ defmodule Todo.Database do
       1..@pool_size
       |> Enum.map(fn i -> worker_spec(dir, i) end)
 
-    Supervisor.start_link(children, strategy: :one_for_one)
+    Supervisor.start_link(children, name: __MODULE__, strategy: :one_for_one)
   end
 
   @spec store(String.t(), term()) :: :ok
