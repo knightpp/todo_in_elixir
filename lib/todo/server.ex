@@ -1,9 +1,11 @@
 defmodule Todo.Server do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
 
   def start_link(name) when is_binary(name) do
-    GenServer.start_link(__MODULE__, name)
+    GenServer.start_link(__MODULE__, name,
+      name: Todo.ProcessRegistry.via_tuple({__MODULE__, name})
+    )
   end
 
   @spec add_entry(GenServer.server(), Todo.List.Entry) :: :ok
