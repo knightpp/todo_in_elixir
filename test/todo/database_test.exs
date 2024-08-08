@@ -1,5 +1,4 @@
 defmodule Todo.DatabaseTest do
-  require GenServer
   use ExUnit.Case
 
   test "get nonexsistent" do
