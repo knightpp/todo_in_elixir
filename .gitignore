@@ -26,3 +26,4 @@ todo-*.tar
 /tmp/
 
 /persist/
+/test_persist/

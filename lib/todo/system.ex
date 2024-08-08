@@ -10,9 +10,11 @@ defmodule Todo.System do
   def init(_arg) do
     Logger.info("starting #{__MODULE__}")
 
+    path = Application.fetch_env!(:todo, :db_path)
+
     children = [
       Todo.ProcessRegistry,
-      {Todo.Database, "./persist"},
+      {Todo.Database, path},
       Todo.Cache
     ]
 

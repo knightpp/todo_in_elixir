@@ -1,15 +1,5 @@
 defmodule Todo.CacheTest do
-  use ExUnit.Case, async: true
-
-  @moduletag :tmp_dir
-
-  setup %{tmp_dir: tmp_dir} do
-    start_supervised!(Todo.ProcessRegistry)
-    start_supervised!({Todo.Database, tmp_dir})
-    start_supervised!(Todo.Cache)
-
-    :ok
-  end
+  use ExUnit.Case
 
   test "server_process" do
     bob_pid = Todo.Cache.server_process("bob")
@@ -20,9 +10,15 @@ defmodule Todo.CacheTest do
 
   test "to-do operations" do
     alice = Todo.Cache.server_process("alice")
-    Todo.Server.add_entry(alice, %{date: ~D[2023-12-19], title: "Dentist"})
+    date = ~D[2023-12-19]
 
-    entries = Todo.Server.entries(alice, ~D[2023-12-19])
-    assert [%{date: ~D[2023-12-19], title: "Dentist"}] = entries
+    Todo.Server.entries(alice, date)
+    |> Stream.map(fn %{id: id} -> id end)
+    |> Enum.each(&Todo.Server.delete_entry(alice, &1))
+
+    Todo.Server.add_entry(alice, %{date: date, title: "Dentist"})
+
+    entries = Todo.Server.entries(alice, date)
+    assert [%{date: ^date, title: "Dentist"}] = entries
   end
 end

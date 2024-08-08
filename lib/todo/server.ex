@@ -42,6 +42,7 @@ defmodule Todo.Server do
   @impl GenServer
   def handle_call({:delete_entry, id}, _from, {name, list}) do
     new_list = Todo.List.delete_entry(list, id)
+    Todo.Database.store(name, new_list)
     {:reply, :ok, {name, new_list}}
   end
 
