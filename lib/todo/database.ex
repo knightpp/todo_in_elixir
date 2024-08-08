@@ -12,38 +12,37 @@ defmodule Todo.Database do
     }
   end
 
-  @spec start_link(String.t()) :: Supervisor.on_start()
   def start_link(dir) do
     Logger.info("starting #{__MODULE__}")
 
     File.mkdir_p!(dir)
 
-    children =
-      1..@pool_size
-      |> Enum.map(fn i -> worker_spec(dir, i) end)
-
-    Supervisor.start_link(children, name: __MODULE__, strategy: :one_for_one)
+    Poolex.start_link(
+      pool_id: __MODULE__,
+      worker_module: Todo.Database.Worker,
+      workers_count: @pool_size,
+      worker_args: [dir]
+    )
   end
 
   @spec store(String.t(), term()) :: :ok
   def store(name, value) do
-    Worker.store(choose_worker(name), name, value)
+    {:ok, result} =
+      Poolex.run(__MODULE__, fn pid ->
+        Worker.store(pid, name, value)
+      end)
+
+    result
   end
 
   @spec get(String.t()) :: term()
   def get(name) do
-    Worker.get(choose_worker(name), name)
-  end
+    {:ok, result} =
+      Poolex.run(__MODULE__, fn pid ->
+        Worker.get(pid, name)
+      end)
 
-  @spec worker_spec(String.t(), number()) :: Supervisor.child_spec()
-  defp(worker_spec(dir, worker_id)) do
-    default_spec = {Todo.Database.Worker, {dir, worker_id}}
-    Supervisor.child_spec(default_spec, id: worker_id)
-  end
-
-  @spec choose_worker(String.t()) :: non_neg_integer()
-  defp choose_worker(key) do
-    :erlang.phash2(key, 3) + 1
+    result
   end
 end
 
@@ -51,18 +50,18 @@ defmodule Todo.Database.Worker do
   use GenServer
   require Logger
 
-  def start_link({dir, worker_id}) do
-    GenServer.start_link(__MODULE__, dir, name: via_tuple(worker_id))
+  def start_link(dir) do
+    GenServer.start_link(__MODULE__, dir)
   end
 
   @spec store(term(), String.t(), term()) :: :ok
-  def store(key, name, value) do
-    GenServer.call(via_tuple(key), {:store, name, value})
+  def store(server, name, value) do
+    GenServer.call(server, {:store, name, value})
   end
 
   @spec get(term(), String.t()) :: term()
-  def get(key, name) do
-    GenServer.call(via_tuple(key), {:get, name})
+  def get(server, name) do
+    GenServer.call(server, {:get, name})
   end
 
   @impl GenServer
@@ -90,9 +89,5 @@ defmodule Todo.Database.Worker do
 
   defp file_name(key, dir) do
     Path.join(dir, to_string(key))
-  end
-
-  defp via_tuple(id) do
-    Todo.ProcessRegistry.via_tuple({__MODULE__, id})
   end
 end

@@ -6,12 +6,12 @@ defmodule Todo.DatabaseTest do
     assert Todo.Database.get("some name") == nil
   end
 
-  test "persist list" do
+  test "persist list store" do
     Todo.Database.store("bob", :my_secret_value)
     assert :my_secret_value = Todo.Database.get("bob")
+  end
 
-    Process.exit(Process.whereis(Todo.Database), :restart_me_please)
-
+  test "persist list get" do
     assert :my_secret_value = Todo.Database.get("bob")
   end
 end
